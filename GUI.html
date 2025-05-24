@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Liquid Level Monitoring System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+      text-align: center;
+      padding: 20px 10px;
+      min-height: 100vh;
+      margin: 0;
+      color: #2c3e50;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #1a365d;
+      font-size: 1.8em;
+    }
+
+    .tank-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .tank {
+      position: relative;
+      width: 120px;
+      height: 280px;
+      border: 6px solid #2c3e50;
+      border-radius: 12px;
+      background-color: white;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .liquid {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 0%;
+      background: linear-gradient(to top, #4a90e2, #357abd);
+      transition: height 0.5s ease-in-out, background 0.5s ease-in-out;
+    }
+
+    .status-container {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 12px;
+      background: #f8fafc;
+      width: 100%;
+    }
+
+    #levelText {
+      font-size: 24px;
+      font-weight: 500;
+      color: #2c3e50;
+      margin: 12px 0;
+    }
+
+    #status {
+      font-size: 18px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      display: inline-block;
+      transition: all 0.3s ease;
+      margin: 8px 0;
+    }
+
+    .status-ok {
+      background-color: #e6f4ea;
+      color: #1e7e34;
+    }
+
+    .status-warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .status-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Media Queries for different screen sizes */
+    @media screen and (min-width: 768px) {
+      body {
+        padding: 40px 20px;
+      }
+
+      .container {
+        padding: 40px;
+      }
+
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 30px;
+      }
+
+      .tank {
+        width: 150px;
+        height: 350px;
+        border: 8px solid #2c3e50;
+      }
+
+      #levelText {
+        font-size: 28px;
+        margin: 15px 0;
+      }
+
+      #status {
+        font-size: 20px;
+        padding: 10px 20px;
+      }
+    }
+
+    /* Prevent text selection on mobile */
+    .tank, #levelText, #status {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Add touch feedback for mobile */
+    @media (hover: none) {
+      .tank:active {
+        transform: scale(0.98);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Liquid Level Monitoring System</h1>
+
+    <div class="tank-container">
+      <div class="tank">
+        <div class="liquid" id="liquidLevel"></div>
+      </div>
+      <div id="levelText">Level: 0%</div>
+      <div id="status" class="status-ok">Status: OK</div>
+    </div>
+  </div>
+
+  <script>
+    const token = 'YOUR_BLYNK_TOKEN'; // Replace this with your actual Blynk token
+    const virtualPin = 'V1'; // Change if you're using a different pin
+
+    async function fetchLevel() {
+      try {
+        const response = await fetch(`https://blynk.cloud/external/api/get?token=${token}&${virtualPin}`);
+        const level = parseInt(await response.text());
+
+        const liquid = document.getElementById('liquidLevel');
+        const levelText = document.getElementById('levelText');
+        const status = document.getElementById('status');
+
+        const clampedLevel = Math.max(0, Math.min(100, level));
+        liquid.style.height = `${clampedLevel}%`;
+        levelText.textContent = `Level: ${clampedLevel}%`;
+
+        // Remove all status classes
+        status.classList.remove('status-ok', 'status-warning', 'status-danger', 'status-error');
+
+        if (clampedLevel < 60) {
+          liquid.style.background = 'linear-gradient(to top, #4a90e2, #357abd)';
+          status.textContent = 'Status: Normal';
+          status.classList.add('status-ok');
+        } else if (clampedLevel < 85) {
+          liquid.style.background = 'linear-gradient(to top, #ffd700, #ffa500)';
+          status.textContent = 'Status: Warning';
+          status.classList.add('status-warning');
+        } else {
+          liquid.style.background = 'linear-gradient(to top, #ff4444, #cc0000)';
+          status.textContent = 'Status: Critical';
+          status.classList.add('status-danger');
+        }
+
+      } catch (err) {
+        console.error('Failed to fetch level:', err);
+        const status = document.getElementById('status');
+        status.textContent = 'Status: Connection Error';
+        status.classList.remove('status-ok', 'status-warning', 'status-danger');
+        status.classList.add('status-error');
+      }
+    }
+
+    // Fetch every 2 seconds
+    setInterval(fetchLevel, 2000);
+    fetchLevel(); // Initial fetch
+  </script>
+</body>
+</html>
